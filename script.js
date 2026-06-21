@@ -4,7 +4,7 @@
  * IMPORTANTE: sostituisci l'URL sotto con il TUO endpoint
  * Apps Script (Deploy > Nuova implementazione > copia URL).
  */
-const API_URL = 'INCOLLA_QUI_URL_APPS_SCRIPT';
+const API_URL = 'https://script.google.com/macros/s/AKfycbw52BpmZfdtqcOzmnt7vHS66uW8K6hHnwsJye023wPpM89gwXJpX8H5cadVpH8CmS7EkA/exec';
 
 // ===== STATO =====
 let currentNucleo = null; // dati del nucleo trovato
