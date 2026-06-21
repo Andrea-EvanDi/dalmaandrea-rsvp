@@ -121,7 +121,6 @@ function renderMembersForm(membri) {
         <div class="radio-option" data-value="Sì">Presente</div>
         <div class="radio-option" data-value="No">Assente</div>
       </div>
-      <div class="field-error-msg" data-error-for="presenza">Seleziona una risposta per procedere.</div>
 
       <div class="sub-field presenza-dependent conditional-hidden">
         <label>Intolleranze / allergie alimentari</label>
@@ -144,7 +143,6 @@ function renderMembersForm(membri) {
           <div class="radio-option" data-value="Sì">Sì</div>
           <div class="radio-option" data-value="No">No</div>
         </div>
-        <div class="field-error-msg" data-error-for="trasporto">Seleziona una risposta per procedere.</div>
       </div>
     `;
 
@@ -167,9 +165,6 @@ function renderMembersForm(membri) {
 
       // Rimuove lo stato di errore non appena l'utente risponde
       group.classList.remove('has-error');
-      const fieldName = group.dataset.field;
-      const errorMsg = group.closest('.member-card').querySelector(`.field-error-msg[data-error-for="${fieldName}"]`);
-      if (errorMsg) errorMsg.classList.remove('visible');
 
       // Se è il campo "presenza", mostra/nascondi i campi dipendenti
       if (group.dataset.field === 'presenza') {
@@ -268,16 +263,12 @@ async function doSubmit() {
 // ===== HELPERS =====
 function markFieldError(card, fieldName) {
   const group = card.querySelector(`[data-field="${fieldName}"]`);
-  const errorMsg = card.querySelector(`.field-error-msg[data-error-for="${fieldName}"]`);
   if (group) group.classList.add('has-error');
-  if (errorMsg) errorMsg.classList.add('visible');
 }
 
 function clearFieldError(card, fieldName) {
   const group = card.querySelector(`[data-field="${fieldName}"]`);
-  const errorMsg = card.querySelector(`.field-error-msg[data-error-for="${fieldName}"]`);
   if (group) group.classList.remove('has-error');
-  if (errorMsg) errorMsg.classList.remove('visible');
 }
 
 function showMessage(el, text, type) {
