@@ -138,7 +138,7 @@ function renderMembersForm(membri) {
       ` : ''}
 
       <div class="sub-field presenza-dependent conditional-hidden">
-        <label class="field-label" style="margin-bottom: 6px; text-transform: none;">Necessità di trasporto / informazioni su come arrivare<span class="required-mark">*</span></label>
+        <label class="field-label">Necessità di trasporto / informazioni su come arrivare<span class="required-mark">*</span></label>
         <div class="radio-group" data-field="trasporto">
           <div class="radio-option" data-value="Sì">Sì</div>
           <div class="radio-option" data-value="No">No</div>
@@ -148,6 +148,8 @@ function renderMembersForm(membri) {
 
     membersContainer.appendChild(card);
   });
+
+  updateSubmitButtonState();
 
   // Listener per i radio-group (presenza, pernottamento, trasporto)
   membersContainer.querySelectorAll('.radio-group').forEach(group => {
@@ -174,8 +176,31 @@ function renderMembersForm(membri) {
           f.classList.toggle('conditional-hidden', value !== 'Sì');
         });
       }
+
+      updateSubmitButtonState();
     });
   });
+}
+
+// ===== VALIDAZIONE LIVE (abilita/disabilita bottone Invia) =====
+function isCardValid(card) {
+  const presenzaGroup = card.querySelector('[data-field="presenza"]');
+  const presenza = presenzaGroup.dataset.selected || '';
+  if (!presenza) return false;
+
+  if (presenza === 'Sì') {
+    const trasportoGroup = card.querySelector('[data-field="trasporto"]');
+    const trasporto = trasportoGroup ? (trasportoGroup.dataset.selected || '') : '';
+    if (!trasporto) return false;
+  }
+
+  return true;
+}
+
+function updateSubmitButtonState() {
+  const cards = membersContainer.querySelectorAll('.member-card');
+  const allValid = Array.from(cards).every(isCardValid);
+  btnSubmit.disabled = !allValid;
 }
 
 // ===== SUBMIT =====
