@@ -200,6 +200,16 @@
     margin-bottom: 8px;
   }
 
+  .required-legend {
+    font-size: 12px;
+    color: var(--color-text-light);
+    text-align: right;
+    margin: 0 0 10px;
+  }
+  .required-legend .required-mark {
+    font-size: 12px;
+  }
+
   .radio-group.has-error .radio-option {
     border-color: var(--color-error);
   }
@@ -262,12 +272,12 @@
     margin-top: 10px;
   }
   .sub-field label {
-    font-size: 12px;
-    color: var(--color-text-light);
-    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 8px;
     display: block;
     text-transform: none;
-    font-weight: 500;
   }
 
   .conditional-hidden {
@@ -352,7 +362,8 @@
         <label style="margin-bottom: 0;">Il vostro nucleo familiare</label>
       </div>
       <div id="members-container"></div>
-      <button class="btn" id="btn-submit">Invia risposta</button>
+      <p class="required-legend"><span class="required-mark">*</span> campo obbligatorio</p>
+      <button class="btn" id="btn-submit" disabled>Invia risposta</button>
       <div class="message" id="submit-message"></div>
     </div>
 
