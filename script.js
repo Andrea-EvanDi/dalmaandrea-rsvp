@@ -116,10 +116,12 @@ function renderMembersForm(membri) {
     card.innerHTML = `
       <div class="member-name">${m.nome} ${m.cognome}${badge}</div>
 
+      <div class="field-label">Presenza<span class="required-mark">*</span></div>
       <div class="radio-group" data-field="presenza">
         <div class="radio-option" data-value="Sì">Presente</div>
         <div class="radio-option" data-value="No">Assente</div>
       </div>
+      <div class="field-error-msg" data-error-for="presenza">Seleziona una risposta per procedere.</div>
 
       <div class="sub-field presenza-dependent conditional-hidden">
         <label>Intolleranze / allergie alimentari</label>
@@ -137,11 +139,12 @@ function renderMembersForm(membri) {
       ` : ''}
 
       <div class="sub-field presenza-dependent conditional-hidden">
-        <label>Necessità di trasporto / informazioni su come arrivare</label>
+        <label class="field-label" style="margin-bottom: 6px; text-transform: none;">Necessità di trasporto / informazioni su come arrivare<span class="required-mark">*</span></label>
         <div class="radio-group" data-field="trasporto">
           <div class="radio-option" data-value="Sì">Sì</div>
           <div class="radio-option" data-value="No">No</div>
         </div>
+        <div class="field-error-msg" data-error-for="trasporto">Seleziona una risposta per procedere.</div>
       </div>
     `;
 
@@ -161,6 +164,12 @@ function renderMembersForm(membri) {
       const value = option.dataset.value;
       option.classList.add(value === 'Sì' ? 'selected-yes' : 'selected-no');
       group.dataset.selected = value;
+
+      // Rimuove lo stato di errore non appena l'utente risponde
+      group.classList.remove('has-error');
+      const fieldName = group.dataset.field;
+      const errorMsg = group.closest('.member-card').querySelector(`.field-error-msg[data-error-for="${fieldName}"]`);
+      if (errorMsg) errorMsg.classList.remove('visible');
 
       // Se è il campo "presenza", mostra/nascondi i campi dipendenti
       if (group.dataset.field === 'presenza') {
@@ -183,6 +192,7 @@ async function doSubmit() {
   const cards = membersContainer.querySelectorAll('.member-card');
   const risposte = [];
   let hasError = false;
+  let firstErrorEl = null;
 
   cards.forEach(card => {
     const presenzaGroup = card.querySelector('[data-field="presenza"]');
@@ -190,14 +200,28 @@ async function doSubmit() {
 
     if (!presenza) {
       hasError = true;
-      presenzaGroup.style.outline = '2px solid var(--color-error)';
-      return;
+      markFieldError(card, 'presenza');
+      if (!firstErrorEl) firstErrorEl = presenzaGroup;
+      return; // senza presenza non ha senso validare il resto della card
     }
-    presenzaGroup.style.outline = 'none';
+    clearFieldError(card, 'presenza');
 
     const intolleranzeInput = card.querySelector('[data-field="intolleranze"]');
     const pernottamentoGroup = card.querySelector('[data-field="pernottamento"]');
     const trasportoGroup = card.querySelector('[data-field="trasporto"]');
+
+    // Trasporto è obbligatorio solo per chi conferma la presenza
+    let trasportoValue = '';
+    if (presenza === 'Sì') {
+      trasportoValue = trasportoGroup ? (trasportoGroup.dataset.selected || '') : '';
+      if (!trasportoValue) {
+        hasError = true;
+        markFieldError(card, 'trasporto');
+        if (!firstErrorEl) firstErrorEl = trasportoGroup;
+      } else {
+        clearFieldError(card, 'trasporto');
+      }
+    }
 
     risposte.push({
       nome: card.dataset.nome,
@@ -205,12 +229,13 @@ async function doSubmit() {
       presenza: presenza,
       intolleranze: presenza === 'Sì' && intolleranzeInput ? intolleranzeInput.value.trim() : '',
       pernottamento: presenza === 'Sì' && pernottamentoGroup ? (pernottamentoGroup.dataset.selected || '') : '',
-      trasporto: presenza === 'Sì' && trasportoGroup ? (trasportoGroup.dataset.selected || '') : ''
+      trasporto: trasportoValue
     });
   });
 
   if (hasError) {
-    showMessage(submitMessage, 'Per favore indica la presenza per tutti i membri.', 'error');
+    showMessage(submitMessage, 'Completa i campi obbligatori evidenziati per procedere.', 'error');
+    if (firstErrorEl) firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
@@ -241,6 +266,20 @@ async function doSubmit() {
 }
 
 // ===== HELPERS =====
+function markFieldError(card, fieldName) {
+  const group = card.querySelector(`[data-field="${fieldName}"]`);
+  const errorMsg = card.querySelector(`.field-error-msg[data-error-for="${fieldName}"]`);
+  if (group) group.classList.add('has-error');
+  if (errorMsg) errorMsg.classList.add('visible');
+}
+
+function clearFieldError(card, fieldName) {
+  const group = card.querySelector(`[data-field="${fieldName}"]`);
+  const errorMsg = card.querySelector(`.field-error-msg[data-error-for="${fieldName}"]`);
+  if (group) group.classList.remove('has-error');
+  if (errorMsg) errorMsg.classList.remove('visible');
+}
+
 function showMessage(el, text, type) {
   el.textContent = text;
   el.className = `message ${type}`;
