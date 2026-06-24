@@ -7,14 +7,13 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbw52BpmZfdtqcOzmnt7vHS66uW8K6hHnwsJye023wPpM89gwXJpX8H5cadVpH8CmS7EkA/exec';
 
 // ===== STATO =====
-let currentNucleo = null;    // dati del nucleo trovato (post-expand)
-let currentMatch = null;     // singolo candidato in fase di conferma
-let currentCandidates = [];  // lista candidati se multiple: true
+let currentNucleo = null;
+let currentMatch = null;
+let currentCandidates = [];
 
 // ===== ELEMENTI =====
 const screens = {
   search: document.getElementById('screen-search'),
-  multiple: document.getElementById('screen-multiple'),
   confirm: document.getElementById('screen-confirm'),
   already: document.getElementById('screen-already'),
   form: document.getElementById('screen-form'),
@@ -28,8 +27,6 @@ const confirmName = document.getElementById('confirm-name');
 const btnConfirmYes = document.getElementById('btn-confirm-yes');
 const btnConfirmNo = document.getElementById('btn-confirm-no');
 const btnAlreadyBack = document.getElementById('btn-already-back');
-const candidatesContainer = document.getElementById('candidates-container');
-const btnMultipleBack = document.getElementById('btn-multiple-back');
 const membersContainer = document.getElementById('members-container');
 const btnSubmit = document.getElementById('btn-submit');
 const submitMessage = document.getElementById('submit-message');
@@ -40,106 +37,169 @@ function showScreen(name) {
   screens[name].classList.add('active');
 }
 
-// ===== RICERCA =====
-let debounceTimer = null;
+// ===== AUTOCOMPLETE =====
+let invitatiList = [];   // [{nome, cognome, nucleoId}] — caricato una volta sola
+let listLoaded = false;
 
-btnSearch.addEventListener('click', doSearch);
-searchInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') doSearch();
+const dropdown = document.getElementById('autocomplete-dropdown');
+
+// Carica la lista al focus sul campo (lazy: non al page load, evita chiamata inutile
+// se l'utente non usa il form) — ma solo una volta
+searchInput.addEventListener('focus', loadListIfNeeded);
+searchInput.addEventListener('input', onSearchInput);
+searchInput.addEventListener('keydown', onSearchKeydown);
+
+// Chiudi dropdown cliccando fuori
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#screen-search')) closeDropdown();
 });
-searchInput.addEventListener('input', () => {
-  clearTimeout(debounceTimer);
-  hideMessage(searchMessage);
-  const q = searchInput.value.trim();
-  if (q.length >= 3) {
-    debounceTimer = setTimeout(doSearch, 400);
-  }
-});
 
-async function doSearch() {
-  const query = searchInput.value.trim();
-  hideMessage(searchMessage);
-
-  if (query.length < 3) {
-    showMessage(searchMessage, 'Inserisci almeno 3 caratteri.', 'error');
-    return;
-  }
-
-  setLoading(btnSearch, true, 'Cerca');
-
+async function loadListIfNeeded() {
+  if (listLoaded) return;
+  dropdown.innerHTML = '<div class="search-loading">Caricamento...</div>';
+  dropdown.classList.add('open');
   try {
-    const url = `${API_URL}?action=search&q=${encodeURIComponent(query)}`;
-    const res = await fetch(url);
+    const res = await fetch(`${API_URL}?action=list`);
     const data = await res.json();
-
-    if (!data.found) {
-      showMessage(searchMessage, data.message || 'Nome non trovato.', 'error');
-      setLoading(btnSearch, false, 'Cerca');
-      return;
+    if (data.ok) {
+      invitatiList = data.invitati;
+      listLoaded = true;
     }
-
-    if (data.multiple) {
-      // Più candidati → schermata selezione
-      currentCandidates = data.candidates;
-      renderCandidates(data.candidates);
-      showScreen('multiple');
-    } else {
-      // Un solo candidato → schermata conferma diretta
-      currentCandidates = data.candidates;
-      currentMatch = data.candidates[0];
-      confirmName.textContent = `${currentMatch.nome} ${currentMatch.cognome}`;
-      showScreen('confirm');
-    }
-
   } catch (err) {
     showMessage(searchMessage, 'Errore di connessione. Riprova.', 'error');
   }
-
-  setLoading(btnSearch, false, 'Cerca');
+  closeDropdown();
 }
 
-// ===== SELEZIONE MULTIPLA =====
-function renderCandidates(candidates) {
-  candidatesContainer.innerHTML = '';
-  candidates.forEach(c => {
-    const el = document.createElement('div');
-    el.className = 'candidate-option';
-    el.dataset.nucleoId = c.nucleoId;
-    el.innerHTML = `<div class="candidate-radio"></div>${c.nome} ${c.cognome}`;
-    el.addEventListener('click', () => selectCandidate(c, el));
-    candidatesContainer.appendChild(el);
+function normalizeForSearch(str) {
+  return String(str)
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // rimuove accenti
+    .replace(/['\s]+/g, ' ')                             // apostrofi e spazi multipli → spazio
+    .trim();
+}
+
+function onSearchInput() {
+  hideMessage(searchMessage);
+  const query = normalizeForSearch(searchInput.value);
+
+  if (query.length < 2) {
+    closeDropdown();
+    return;
+  }
+
+  // Filtra in-memory: sottostringa su Nome, Cognome, o Nome+Cognome
+  const results = invitatiList.filter(inv => {
+    const nome    = normalizeForSearch(inv.nome);
+    const cognome = normalizeForSearch(inv.cognome);
+    const full    = nome + ' ' + cognome;
+    const reverse = cognome + ' ' + nome;
+    return nome.includes(query) ||
+           cognome.includes(query) ||
+           full.includes(query) ||
+           reverse.includes(query);
   });
+
+  renderDropdown(results, searchInput.value.trim());
 }
 
-function selectCandidate(candidate, el) {
-  // Evidenzia selezione
-  candidatesContainer.querySelectorAll('.candidate-option').forEach(o => o.classList.remove('selected'));
-  el.classList.add('selected');
-  // Piccolo delay visivo prima di passare alla conferma
-  setTimeout(() => {
-    currentMatch = candidate;
-    confirmName.textContent = `${candidate.nome} ${candidate.cognome}`;
-    showScreen('confirm');
-  }, 200);
+function renderDropdown(results, rawQuery) {
+  dropdown.innerHTML = '';
+
+  if (results.length === 0) {
+    dropdown.innerHTML = '<div class="autocomplete-empty">Nessun risultato. Riprova o contattaci.</div>';
+    dropdown.classList.add('open');
+    return;
+  }
+
+  results.forEach((inv, idx) => {
+    const item = document.createElement('div');
+    item.className = 'autocomplete-item';
+    item.dataset.idx = idx;
+    // Evidenzia la parte che corrisponde alla query
+    const fullName = `${inv.nome} ${inv.cognome}`;
+    item.innerHTML = highlightMatch(fullName, rawQuery);
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault(); // evita blur sull'input prima del click
+      selectInvitato(inv);
+    });
+    dropdown.appendChild(item);
+  });
+
+  dropdown.classList.add('open');
+  // Salva risultati correnti per navigazione da tastiera
+  dropdown._results = results;
+  dropdown._focused = -1;
 }
 
-btnMultipleBack.addEventListener('click', () => {
-  currentCandidates = [];
-  currentMatch = null;
-  showScreen('search');
-});
+function highlightMatch(fullName, query) {
+  if (!query) return fullName;
+  const idx = fullName.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .indexOf(normalizeForSearch(query));
+  if (idx === -1) return fullName;
+  return fullName.slice(0, idx) +
+    `<mark>${fullName.slice(idx, idx + query.length)}</mark>` +
+    fullName.slice(idx + query.length);
+}
+
+// Navigazione da tastiera nel dropdown
+function onSearchKeydown(e) {
+  if (!dropdown.classList.contains('open')) return;
+  const items = dropdown.querySelectorAll('.autocomplete-item');
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    dropdown._focused = Math.min((dropdown._focused ?? -1) + 1, items.length - 1);
+    updateFocus(items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    dropdown._focused = Math.max((dropdown._focused ?? 0) - 1, 0);
+    updateFocus(items);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const f = dropdown._focused ?? -1;
+    if (f >= 0 && dropdown._results?.[f]) {
+      selectInvitato(dropdown._results[f]);
+    }
+  } else if (e.key === 'Escape') {
+    closeDropdown();
+  }
+}
+
+function updateFocus(items) {
+  items.forEach((item, i) => {
+    item.classList.toggle('focused', i === dropdown._focused);
+  });
+  if (dropdown._focused >= 0) {
+    items[dropdown._focused].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function closeDropdown() {
+  dropdown.classList.remove('open');
+  dropdown.innerHTML = '';
+}
+
+function selectInvitato(inv) {
+  // Aggiorna il campo con il nome selezionato e chiudi dropdown
+  searchInput.value = `${inv.nome} ${inv.cognome}`;
+  closeDropdown();
+  hideMessage(searchMessage);
+
+  // Passa direttamente alla conferma identità (no ricerca backend necessaria)
+  currentMatch = inv;
+  currentCandidates = [inv];
+  confirmName.textContent = `${inv.nome} ${inv.cognome}`;
+  showScreen('confirm');
+}
 
 // ===== CONFERMA MATCH =====
 btnConfirmNo.addEventListener('click', () => {
-  // Torna alla lista candidati se c'erano più match, altrimenti ricerca da zero
-  if (currentCandidates.length > 1) {
-    showScreen('multiple');
-  } else {
-    currentMatch = null;
-    currentCandidates = [];
-    searchInput.value = '';
-    showScreen('search');
-  }
+  currentMatch = null;
+  currentCandidates = [];
+  showScreen('search');
 });
 
 btnConfirmYes.addEventListener('click', async () => {
