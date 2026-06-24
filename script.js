@@ -83,7 +83,7 @@ function onSearchInput() {
   hideMessage(searchMessage);
   const query = normalizeForSearch(searchInput.value);
 
-  if (query.length < 2) {
+  if (query.length < 3) {
     closeDropdown();
     return;
   }
