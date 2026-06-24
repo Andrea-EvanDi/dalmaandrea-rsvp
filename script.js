@@ -7,12 +7,14 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbw52BpmZfdtqcOzmnt7vHS66uW8K6hHnwsJye023wPpM89gwXJpX8H5cadVpH8CmS7EkA/exec';
 
 // ===== STATO =====
-let currentNucleo = null; // dati del nucleo trovato
-let currentMatch = null;  // persona matchata in fase di conferma
+let currentNucleo = null;    // dati del nucleo trovato (post-expand)
+let currentMatch = null;     // singolo candidato in fase di conferma
+let currentCandidates = [];  // lista candidati se multiple: true
 
 // ===== ELEMENTI =====
 const screens = {
   search: document.getElementById('screen-search'),
+  multiple: document.getElementById('screen-multiple'),
   confirm: document.getElementById('screen-confirm'),
   already: document.getElementById('screen-already'),
   form: document.getElementById('screen-form'),
@@ -26,6 +28,8 @@ const confirmName = document.getElementById('confirm-name');
 const btnConfirmYes = document.getElementById('btn-confirm-yes');
 const btnConfirmNo = document.getElementById('btn-confirm-no');
 const btnAlreadyBack = document.getElementById('btn-already-back');
+const candidatesContainer = document.getElementById('candidates-container');
+const btnMultipleBack = document.getElementById('btn-multiple-back');
 const membersContainer = document.getElementById('members-container');
 const btnSubmit = document.getElementById('btn-submit');
 const submitMessage = document.getElementById('submit-message');
@@ -37,17 +41,27 @@ function showScreen(name) {
 }
 
 // ===== RICERCA =====
+let debounceTimer = null;
+
 btnSearch.addEventListener('click', doSearch);
 searchInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') doSearch();
+});
+searchInput.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  hideMessage(searchMessage);
+  const q = searchInput.value.trim();
+  if (q.length >= 3) {
+    debounceTimer = setTimeout(doSearch, 400);
+  }
 });
 
 async function doSearch() {
   const query = searchInput.value.trim();
   hideMessage(searchMessage);
 
-  if (query.length < 2) {
-    showMessage(searchMessage, 'Inserisci almeno nome e cognome.', 'error');
+  if (query.length < 3) {
+    showMessage(searchMessage, 'Inserisci almeno 3 caratteri.', 'error');
     return;
   }
 
@@ -64,9 +78,18 @@ async function doSearch() {
       return;
     }
 
-    currentMatch = data;
-    confirmName.textContent = `${data.matchedPerson.nome} ${data.matchedPerson.cognome}`;
-    showScreen('confirm');
+    if (data.multiple) {
+      // Più candidati → schermata selezione
+      currentCandidates = data.candidates;
+      renderCandidates(data.candidates);
+      showScreen('multiple');
+    } else {
+      // Un solo candidato → schermata conferma diretta
+      currentCandidates = data.candidates;
+      currentMatch = data.candidates[0];
+      confirmName.textContent = `${currentMatch.nome} ${currentMatch.cognome}`;
+      showScreen('confirm');
+    }
 
   } catch (err) {
     showMessage(searchMessage, 'Errore di connessione. Riprova.', 'error');
@@ -75,28 +98,85 @@ async function doSearch() {
   setLoading(btnSearch, false, 'Cerca');
 }
 
-// ===== CONFERMA MATCH =====
-btnConfirmNo.addEventListener('click', () => {
+// ===== SELEZIONE MULTIPLA =====
+function renderCandidates(candidates) {
+  candidatesContainer.innerHTML = '';
+  candidates.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'candidate-option';
+    el.dataset.nucleoId = c.nucleoId;
+    el.innerHTML = `<div class="candidate-radio"></div>${c.nome} ${c.cognome}`;
+    el.addEventListener('click', () => selectCandidate(c, el));
+    candidatesContainer.appendChild(el);
+  });
+}
+
+function selectCandidate(candidate, el) {
+  // Evidenzia selezione
+  candidatesContainer.querySelectorAll('.candidate-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  // Piccolo delay visivo prima di passare alla conferma
+  setTimeout(() => {
+    currentMatch = candidate;
+    confirmName.textContent = `${candidate.nome} ${candidate.cognome}`;
+    showScreen('confirm');
+  }, 200);
+}
+
+btnMultipleBack.addEventListener('click', () => {
+  currentCandidates = [];
   currentMatch = null;
-  searchInput.value = '';
   showScreen('search');
 });
 
-btnConfirmYes.addEventListener('click', () => {
-  if (!currentMatch) return;
+// ===== CONFERMA MATCH =====
+btnConfirmNo.addEventListener('click', () => {
+  // Torna alla lista candidati se c'erano più match, altrimenti ricerca da zero
+  if (currentCandidates.length > 1) {
+    showScreen('multiple');
+  } else {
+    currentMatch = null;
+    currentCandidates = [];
+    searchInput.value = '';
+    showScreen('search');
+  }
+});
 
-  if (currentMatch.giaRisposto) {
-    showScreen('already');
-    return;
+btnConfirmYes.addEventListener('click', async () => {
+  if (!currentMatch) return;
+  setLoading(btnConfirmYes, true, 'Sì, sono io');
+
+  try {
+    const url = `${API_URL}?action=expand&nucleoId=${encodeURIComponent(currentMatch.nucleoId)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!data.found) {
+      showMessage(searchMessage, data.message || 'Errore nel recupero del nucleo.', 'error');
+      showScreen('search');
+      return;
+    }
+
+    if (data.giaRisposto) {
+      showScreen('already');
+      return;
+    }
+
+    currentNucleo = data;
+    renderMembersForm(currentNucleo.membri);
+    showScreen('form');
+
+  } catch (err) {
+    showMessage(searchMessage, 'Errore di connessione. Riprova.', 'error');
+    showScreen('search');
   }
 
-  currentNucleo = currentMatch;
-  renderMembersForm(currentNucleo.membri);
-  showScreen('form');
+  setLoading(btnConfirmYes, false, 'Sì, sono io');
 });
 
 btnAlreadyBack.addEventListener('click', () => {
   currentMatch = null;
+  currentCandidates = [];
   searchInput.value = '';
   showScreen('search');
 });

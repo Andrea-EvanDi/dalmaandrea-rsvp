@@ -200,6 +200,48 @@
     margin-bottom: 8px;
   }
 
+  .multiple-intro {
+    font-size: 14px;
+    color: var(--color-text-light);
+    margin: 0 0 16px;
+    text-align: center;
+  }
+
+  .candidate-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 15px;
+    font-family: var(--font-heading);
+    color: var(--color-text);
+  }
+  .candidate-option:hover {
+    border-color: var(--color-primary);
+    background: var(--color-bg);
+  }
+  .candidate-option.selected {
+    border-color: var(--color-primary);
+    background: rgba(140, 122, 107, 0.07);
+  }
+  .candidate-radio {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--color-border);
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .candidate-option.selected .candidate-radio {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+  }
+
   .required-legend {
     font-size: 12px;
     color: var(--color-text-light);
@@ -329,14 +371,21 @@
     <!-- SCHERMATA 1: RICERCA -->
     <div class="screen active" id="screen-search">
       <div class="form-group">
-        <label for="search-input">Nome e Cognome</label>
-        <input type="text" id="search-input" class="search-input" placeholder="Es. Marco Rossi" autocomplete="off">
+        <label for="search-input">Il tuo nome</label>
+        <input type="text" id="search-input" class="search-input" placeholder="Es. Andrea" autocomplete="off">
       </div>
       <button class="btn" id="btn-search">Cerca</button>
       <div class="message" id="search-message"></div>
     </div>
 
-    <!-- SCHERMATA 2: CONFERMA MATCH -->
+    <!-- SCHERMATA 2a: SELEZIONE MULTIPLA -->
+    <div class="screen" id="screen-multiple">
+      <p class="multiple-intro">Abbiamo trovato più persone. Seleziona il tuo nome:</p>
+      <div id="candidates-container"></div>
+      <button class="btn btn-secondary" id="btn-multiple-back" style="margin-top:12px">Cerca di nuovo</button>
+    </div>
+
+    <!-- SCHERMATA 2b: CONFERMA MATCH -->
     <div class="screen" id="screen-confirm">
       <div class="match-banner">
         <div class="match-name" id="confirm-name"></div>
