@@ -13,23 +13,21 @@ let currentCandidates = [];
 
 // ===== ELEMENTI =====
 const screens = {
-  search: document.getElementById('screen-search'),
-  confirm: document.getElementById('screen-confirm'),
-  already: document.getElementById('screen-already'),
-  form: document.getElementById('screen-form'),
-  success: document.getElementById('screen-success'),
+  search:   document.getElementById('screen-search'),
+  multiple: document.getElementById('screen-multiple'),
+  confirm:  document.getElementById('screen-confirm'),
+  already:  document.getElementById('screen-already'),
+  form:     document.getElementById('screen-form'),
+  success:  document.getElementById('screen-success'),
 };
 
-const searchInput = document.getElementById('search-input');
-const btnSearch = document.getElementById('btn-search');
-const searchMessage = document.getElementById('search-message');
-const confirmName = document.getElementById('confirm-name');
-const btnConfirmYes = document.getElementById('btn-confirm-yes');
-const btnConfirmNo = document.getElementById('btn-confirm-no');
+const confirmName    = document.getElementById('confirm-name');
+const btnConfirmYes  = document.getElementById('btn-confirm-yes');
+const btnConfirmNo   = document.getElementById('btn-confirm-no');
 const btnAlreadyBack = document.getElementById('btn-already-back');
 const membersContainer = document.getElementById('members-container');
-const btnSubmit = document.getElementById('btn-submit');
-const submitMessage = document.getElementById('submit-message');
+const btnSubmit      = document.getElementById('btn-submit');
+const submitMessage  = document.getElementById('submit-message');
 
 // ===== NAVIGAZIONE SCHERMATE =====
 function showScreen(name) {
@@ -37,169 +35,97 @@ function showScreen(name) {
   screens[name].classList.add('active');
 }
 
-// ===== AUTOCOMPLETE =====
-let invitatiList = [];   // [{nome, cognome, nucleoId}] — caricato una volta sola
-let listLoaded = false;
+// ===== ELEMENTI RICERCA =====
+const inputNome    = document.getElementById('input-nome');
+const inputCognome = document.getElementById('input-cognome');
+const btnSearch    = document.getElementById('btn-search');
+const searchMessage = document.getElementById('search-message');
 
-const dropdown = document.getElementById('autocomplete-dropdown');
-
-// Carica la lista al focus sul campo (lazy: non al page load, evita chiamata inutile
-// se l'utente non usa il form) — ma solo una volta
-searchInput.addEventListener('focus', loadListIfNeeded);
-searchInput.addEventListener('input', onSearchInput);
-searchInput.addEventListener('keydown', onSearchKeydown);
-
-// Chiudi dropdown cliccando fuori
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('#screen-search')) closeDropdown();
+// ===== RICERCA =====
+btnSearch.addEventListener('click', doSearch);
+[inputNome, inputCognome].forEach(input => {
+  input.addEventListener('keypress', (e) => { if (e.key === 'Enter') doSearch(); });
 });
 
-async function loadListIfNeeded() {
-  if (listLoaded) return;
-  dropdown.innerHTML = '<div class="search-loading">Caricamento...</div>';
-  dropdown.classList.add('open');
+async function doSearch() {
+  hideMessage(searchMessage);
+  const nome    = inputNome.value.trim();
+  const cognome = inputCognome.value.trim();
+
+  if (nome.length < 2 || cognome.length < 2) {
+    showMessage(searchMessage, 'Inserisci sia il nome che il cognome (almeno 2 caratteri ciascuno).', 'error');
+    return;
+  }
+
+  setLoading(btnSearch, true, 'Cerca');
+
   try {
-    const res = await fetch(`${API_URL}?action=list`);
+    const url = `${API_URL}?action=search&nome=${encodeURIComponent(nome)}&cognome=${encodeURIComponent(cognome)}`;
+    const res = await fetch(url);
     const data = await res.json();
-    if (data.ok) {
-      invitatiList = data.invitati;
-      listLoaded = true;
+
+    if (!data.found) {
+      showMessage(searchMessage, data.message || 'Nome non trovato.', 'error');
+      setLoading(btnSearch, false, 'Cerca');
+      return;
     }
+
+    if (data.multiple) {
+      currentCandidates = data.candidates;
+      renderCandidates(data.candidates);
+      showScreen('multiple');
+    } else {
+      currentMatch = data.candidates[0];
+      currentCandidates = data.candidates;
+      confirmName.textContent = `${currentMatch.nome} ${currentMatch.cognome}`;
+      showScreen('confirm');
+    }
+
   } catch (err) {
     showMessage(searchMessage, 'Errore di connessione. Riprova.', 'error');
   }
-  closeDropdown();
+
+  setLoading(btnSearch, false, 'Cerca');
 }
 
-function normalizeForSearch(str) {
-  return String(str)
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // rimuove accenti
-    .replace(/['\s]+/g, ' ')                             // apostrofi e spazi multipli → spazio
-    .trim();
-}
+// ===== SELEZIONE MULTIPLA =====
+const candidatesContainer = document.getElementById('candidates-container');
+const btnMultipleBack     = document.getElementById('btn-multiple-back');
 
-function onSearchInput() {
-  hideMessage(searchMessage);
-  const query = normalizeForSearch(searchInput.value);
-
-  if (query.length < 3) {
-    closeDropdown();
-    return;
-  }
-
-  // Filtra in-memory: sottostringa su Nome, Cognome, o Nome+Cognome
-  const results = invitatiList.filter(inv => {
-    const nome    = normalizeForSearch(inv.nome);
-    const cognome = normalizeForSearch(inv.cognome);
-    const full    = nome + ' ' + cognome;
-    const reverse = cognome + ' ' + nome;
-    return nome.includes(query) ||
-           cognome.includes(query) ||
-           full.includes(query) ||
-           reverse.includes(query);
-  });
-
-  renderDropdown(results, searchInput.value.trim());
-}
-
-function renderDropdown(results, rawQuery) {
-  dropdown.innerHTML = '';
-
-  if (results.length === 0) {
-    dropdown.innerHTML = '<div class="autocomplete-empty">Nessun risultato. Riprova o contattaci.</div>';
-    dropdown.classList.add('open');
-    return;
-  }
-
-  results.forEach((inv, idx) => {
-    const item = document.createElement('div');
-    item.className = 'autocomplete-item';
-    item.dataset.idx = idx;
-    // Evidenzia la parte che corrisponde alla query
-    const fullName = `${inv.nome} ${inv.cognome}`;
-    item.innerHTML = highlightMatch(fullName, rawQuery);
-    item.addEventListener('mousedown', (e) => {
-      e.preventDefault(); // evita blur sull'input prima del click
-      selectInvitato(inv);
+function renderCandidates(candidates) {
+  candidatesContainer.innerHTML = '';
+  candidates.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'candidate-option';
+    el.innerHTML = `<div class="candidate-radio"></div>${c.nome} ${c.cognome}`;
+    el.addEventListener('click', () => {
+      candidatesContainer.querySelectorAll('.candidate-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      setTimeout(() => {
+        currentMatch = c;
+        confirmName.textContent = `${c.nome} ${c.cognome}`;
+        showScreen('confirm');
+      }, 200);
     });
-    dropdown.appendChild(item);
+    candidatesContainer.appendChild(el);
   });
-
-  dropdown.classList.add('open');
-  // Salva risultati correnti per navigazione da tastiera
-  dropdown._results = results;
-  dropdown._focused = -1;
 }
 
-function highlightMatch(fullName, query) {
-  if (!query) return fullName;
-  const idx = fullName.toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .indexOf(normalizeForSearch(query));
-  if (idx === -1) return fullName;
-  return fullName.slice(0, idx) +
-    `<mark>${fullName.slice(idx, idx + query.length)}</mark>` +
-    fullName.slice(idx + query.length);
-}
-
-// Navigazione da tastiera nel dropdown
-function onSearchKeydown(e) {
-  if (!dropdown.classList.contains('open')) return;
-  const items = dropdown.querySelectorAll('.autocomplete-item');
-  if (!items.length) return;
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    dropdown._focused = Math.min((dropdown._focused ?? -1) + 1, items.length - 1);
-    updateFocus(items);
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    dropdown._focused = Math.max((dropdown._focused ?? 0) - 1, 0);
-    updateFocus(items);
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    const f = dropdown._focused ?? -1;
-    if (f >= 0 && dropdown._results?.[f]) {
-      selectInvitato(dropdown._results[f]);
-    }
-  } else if (e.key === 'Escape') {
-    closeDropdown();
-  }
-}
-
-function updateFocus(items) {
-  items.forEach((item, i) => {
-    item.classList.toggle('focused', i === dropdown._focused);
-  });
-  if (dropdown._focused >= 0) {
-    items[dropdown._focused].scrollIntoView({ block: 'nearest' });
-  }
-}
-
-function closeDropdown() {
-  dropdown.classList.remove('open');
-  dropdown.innerHTML = '';
-}
-
-function selectInvitato(inv) {
-  // Aggiorna il campo con il nome selezionato e chiudi dropdown
-  searchInput.value = `${inv.nome} ${inv.cognome}`;
-  closeDropdown();
-  hideMessage(searchMessage);
-
-  // Passa direttamente alla conferma identità (no ricerca backend necessaria)
-  currentMatch = inv;
-  currentCandidates = [inv];
-  confirmName.textContent = `${inv.nome} ${inv.cognome}`;
-  showScreen('confirm');
-}
-
-// ===== CONFERMA MATCH =====
-btnConfirmNo.addEventListener('click', () => {
+btnMultipleBack.addEventListener('click', () => {
   currentMatch = null;
   currentCandidates = [];
   showScreen('search');
+});
+
+// ===== CONFERMA MATCH =====
+btnConfirmNo.addEventListener('click', () => {
+  if (currentCandidates.length > 1) {
+    showScreen('multiple');
+  } else {
+    currentMatch = null;
+    currentCandidates = [];
+    showScreen('search');
+  }
 });
 
 btnConfirmYes.addEventListener('click', async () => {
@@ -237,7 +163,8 @@ btnConfirmYes.addEventListener('click', async () => {
 btnAlreadyBack.addEventListener('click', () => {
   currentMatch = null;
   currentCandidates = [];
-  searchInput.value = '';
+  inputNome.value = '';
+  inputCognome.value = '';
   showScreen('search');
 });
 

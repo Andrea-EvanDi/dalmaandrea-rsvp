@@ -207,53 +207,6 @@
     margin-bottom: 8px;
   }
 
-  .autocomplete-dropdown {
-    display: none;
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0; right: 0;
-    background: var(--color-card-bg);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-    z-index: 100;
-    max-height: 240px;
-    overflow-y: auto;
-  }
-  .autocomplete-dropdown.open { display: block; }
-
-  .autocomplete-item {
-    padding: 12px 16px;
-    cursor: pointer;
-    font-size: 15px;
-    color: var(--color-text);
-    border-bottom: 1px solid var(--color-border);
-    transition: background 0.1s;
-  }
-  .autocomplete-item:last-child { border-bottom: none; }
-  .autocomplete-item:hover,
-  .autocomplete-item.focused { background: var(--color-bg); }
-
-  .autocomplete-item mark {
-    background: none;
-    color: var(--color-primary);
-    font-weight: 700;
-  }
-
-  .autocomplete-empty {
-    padding: 14px 16px;
-    font-size: 14px;
-    color: var(--color-text-light);
-    text-align: center;
-  }
-
-  .search-loading {
-    padding: 14px 16px;
-    font-size: 14px;
-    color: var(--color-text-light);
-    text-align: center;
-  }
-
   .multiple-intro {
     font-size: 14px;
     color: var(--color-text-light);
@@ -424,17 +377,30 @@
 
     <!-- SCHERMATA 1: RICERCA -->
     <div class="screen active" id="screen-search">
-      <div class="form-group" style="position:relative">
-        <label for="search-input">Il tuo nome</label>
-        <input type="text" id="search-input" class="search-input"
-               placeholder="Inizia a digitare qui il tuo nome"
+      <div class="form-group">
+        <label for="input-nome">Nome</label>
+        <input type="text" id="input-nome" class="search-input"
+               placeholder="Es. Andrea"
                autocomplete="off" autocorrect="off" spellcheck="false">
-        <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
       </div>
+      <div class="form-group">
+        <label for="input-cognome">Cognome</label>
+        <input type="text" id="input-cognome" class="search-input"
+               placeholder="Es. Evangelista"
+               autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <button class="btn" id="btn-search">Cerca</button>
       <div class="message" id="search-message"></div>
     </div>
 
-    <!-- SCHERMATA 2: CONFERMA MATCH -->
+    <!-- SCHERMATA 2: SELEZIONE MULTIPLA (se più candidati) -->
+    <div class="screen" id="screen-multiple">
+      <p class="multiple-intro">Abbiamo trovato più persone. Seleziona il tuo nome:</p>
+      <div id="candidates-container"></div>
+      <button class="btn btn-secondary" id="btn-multiple-back" style="margin-top:12px">Cerca di nuovo</button>
+    </div>
+
+    <!-- SCHERMATA 3: CONFERMA MATCH -->
     <div class="screen" id="screen-confirm">
       <div class="match-banner">
         <div class="match-name" id="confirm-name"></div>
