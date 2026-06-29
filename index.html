@@ -369,28 +369,7 @@
   .screen { display: none; }
   .screen.active { display: block; }
 
-  /* ===== ELEMENTI FLOREALI ANGOLARI ===== */
-  .floral-corner {
-    position: fixed;
-    width: 180px;
-    pointer-events: none;
-    z-index: 0;
-  }
-  .floral-corner.top-left {
-    top: 0; left: 0;
-  }
-  .floral-corner.bottom-right {
-    bottom: 0; right: 0;
-    transform: rotate(180deg) scaleX(-1);
-  }
-  @media (max-width: 480px) {
-    .floral-corner { width: 110px; }
-  }
-
-  /* Assicura che il contenuto principale stia sopra i fiori */
-  .rsvp-container { position: relative; z-index: 1; }
-
-  /* ===== FOOTER CONTATTI ===== */
+    /* ===== FOOTER CONTATTI ===== */
   .rsvp-footer {
     background: #8a9e8a;
     color: #FAF5EE;
@@ -445,19 +424,6 @@
 </style>
 </head>
 <body>
-
-<!-- Elementi floreali angolari — sostituisci floral-corner.png con il path reale su GitHub -->
-<img class="floral-corner top-left"     src="/images/elementi_grafici_flower.png" alt="">
-<img class="floral-corner bottom-right" src="/images/elementi_grafici_flower.png" alt="">
-
-<div class="rsvp-container">
-
-  <div class="rsvp-header">
-    <h1>Dalma & Andrea</h1>
-    <p>Cerca il tuo nome per confermare la presenza<br>al nostro matrimonio del 10 Ottobre 2026</p>
-  </div>
-
-  <div class="rsvp-card">
 
     <!-- SCHERMATA 1: RICERCA -->
     <div class="screen active" id="screen-search">
