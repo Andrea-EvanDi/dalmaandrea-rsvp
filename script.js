@@ -172,7 +172,26 @@ btnAlreadyBack.addEventListener('click', () => {
 function renderMembersForm(membri) {
   membersContainer.innerHTML = '';
 
-  membri.forEach((m, idx) => {
+  // Card informativa hotel — mostrata solo per nuclei con Necessita_Hotel=Sì,
+  // appare prima delle card membri con animazione fade-slide
+  const nucleoHasHotel = membri.some(m => m.necessitaHotel);
+  if (nucleoHasHotel) {
+    const hotelCard = document.createElement('div');
+    hotelCard.className = 'hotel-card';
+    hotelCard.innerHTML = `
+      <span class="hotel-card-icon">🌿</span>
+      <div class="hotel-card-title">Abbiamo pensato anche alla vostra sistemazione</div>
+      <p class="hotel-card-text">
+        Per rendere tutto più semplice e piacevole, siamo felici di offrirvi
+        la sistemazione per la notte del matrimonio (10 → 11 ottobre).
+        Vi chiediamo solo di confermarla e di segnalarci eventuali necessità
+        per notti aggiuntive, così da comunicare il numero definitivo alla struttura.
+      </p>
+    `;
+    membersContainer.appendChild(hotelCard);
+  }
+
+  membri.forEach((m) => {
     const card = document.createElement('div');
     card.className = 'member-card';
     card.dataset.nome = m.nome;
@@ -194,16 +213,6 @@ function renderMembersForm(membri) {
         <input type="text" class="text-input" data-field="intolleranze" placeholder="Nessuna, se non specificato">
       </div>
 
-      ${m.necessitaHotel ? `
-      <div class="sub-field presenza-dependent conditional-hidden">
-        <label>Necessità di pernottamento</label>
-        <div class="radio-group" data-field="pernottamento">
-          <div class="radio-option" data-value="Sì">Sì</div>
-          <div class="radio-option" data-value="No">No</div>
-        </div>
-      </div>
-      ` : ''}
-
       <div class="sub-field presenza-dependent conditional-hidden">
         <label class="field-label">Necessità di trasporto / informazioni su come arrivare<span class="required-mark">*</span></label>
         <div class="radio-group" data-field="trasporto">
@@ -216,37 +225,104 @@ function renderMembersForm(membri) {
     membersContainer.appendChild(card);
   });
 
+  // Setup sezione hotel (nascosta inizialmente)
+  setupHotelSection(nucleoHasHotel);
   updateSubmitButtonState();
 
-  // Listener per i radio-group (presenza, pernottamento, trasporto)
+  // Listener radio-group nelle card membri
   membersContainer.querySelectorAll('.radio-group').forEach(group => {
     group.addEventListener('click', (e) => {
       const option = e.target.closest('.radio-option');
       if (!option) return;
 
-      // Deseleziona fratelli, seleziona questo
       group.querySelectorAll('.radio-option').forEach(o => {
         o.classList.remove('selected-yes', 'selected-no');
       });
       const value = option.dataset.value;
       option.classList.add(value === 'Sì' ? 'selected-yes' : 'selected-no');
       group.dataset.selected = value;
-
-      // Rimuove lo stato di errore non appena l'utente risponde
       group.classList.remove('has-error');
 
-      // Se è il campo "presenza", mostra/nascondi i campi dipendenti
       if (group.dataset.field === 'presenza') {
         const card = group.closest('.member-card');
-        const dependentFields = card.querySelectorAll('.presenza-dependent');
-        dependentFields.forEach(f => {
+        card.querySelectorAll('.presenza-dependent').forEach(f => {
           f.classList.toggle('conditional-hidden', value !== 'Sì');
         });
+        // Aggiorna visibilità sezione hotel dopo ogni cambio presenza
+        updateHotelSectionVisibility(nucleoHasHotel);
       }
 
       updateSubmitButtonState();
     });
   });
+}
+
+// ===== SEZIONE HOTEL =====
+function setupHotelSection(nucleoHasHotel) {
+  const hotelSection = document.getElementById('hotel-section');
+  if (!hotelSection) return;
+
+  // Reset stato
+  hotelSection.style.display = 'none';
+
+  // Listener su "stanza-confermata" per mostrare/nascondere notti extra
+  const stanzaGroup = hotelSection.querySelector('[data-field="stanza-confermata"]');
+  if (stanzaGroup) {
+    stanzaGroup.addEventListener('click', (e) => {
+      const option = e.target.closest('.radio-option');
+      if (!option) return;
+      stanzaGroup.querySelectorAll('.radio-option').forEach(o => {
+        o.classList.remove('selected-yes', 'selected-no');
+      });
+      const value = option.dataset.value;
+      option.classList.add(value === 'Sì' ? 'selected-yes' : 'selected-no');
+      stanzaGroup.dataset.selected = value;
+      stanzaGroup.classList.remove('has-error');
+
+      const nottiWrapper = document.getElementById('notti-extra-wrapper');
+      if (nottiWrapper) nottiWrapper.style.display = value === 'Sì' ? 'block' : 'none';
+
+      updateSubmitButtonState();
+    });
+  }
+
+  // Listener checkbox notti extra
+  hotelSection.querySelectorAll('.notte-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      opt.classList.toggle('selected');
+      const checkbox = opt.querySelector('.notte-checkbox');
+      if (checkbox) checkbox.textContent = opt.classList.contains('selected') ? '✓' : '';
+    });
+  });
+}
+
+function updateHotelSectionVisibility(nucleoHasHotel) {
+  const hotelSection = document.getElementById('hotel-section');
+  if (!hotelSection || !nucleoHasHotel) return;
+
+  const cards = membersContainer.querySelectorAll('.member-card');
+  const almenoUnPresente = Array.from(cards).some(card => {
+    const g = card.querySelector('[data-field="presenza"]');
+    return g && g.dataset.selected === 'Sì';
+  });
+
+  if (almenoUnPresente && hotelSection.style.display === 'none') {
+    hotelSection.style.display = 'block';
+    // Ri-triggera l'animazione rimuovendo e riaggungendo la classe
+    hotelSection.style.animation = 'none';
+    hotelSection.offsetHeight; // force reflow
+    hotelSection.style.animation = '';
+  } else if (!almenoUnPresente) {
+    hotelSection.style.display = 'none';
+    // Reset stato interno
+    const stanzaGroup = hotelSection.querySelector('[data-field="stanza-confermata"]');
+    if (stanzaGroup) {
+      stanzaGroup.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected-yes', 'selected-no'));
+      delete stanzaGroup.dataset.selected;
+    }
+    const nottiWrapper = document.getElementById('notti-extra-wrapper');
+    if (nottiWrapper) nottiWrapper.style.display = 'none';
+  }
 }
 
 // ===== VALIDAZIONE LIVE (abilita/disabilita bottone Invia) =====
@@ -264,9 +340,19 @@ function isCardValid(card) {
   return true;
 }
 
+function isHotelSectionValid() {
+  const hotelSection = document.getElementById('hotel-section');
+  if (!hotelSection || hotelSection.style.display === 'none') return true; // non visibile = non richiesta
+
+  const stanzaGroup = hotelSection.querySelector('[data-field="stanza-confermata"]');
+  if (!stanzaGroup || !stanzaGroup.dataset.selected) return false; // obbligatorio se visibile
+
+  return true;
+}
+
 function updateSubmitButtonState() {
   const cards = membersContainer.querySelectorAll('.member-card');
-  const allValid = Array.from(cards).every(isCardValid);
+  const allValid = Array.from(cards).every(isCardValid) && isHotelSectionValid();
   btnSubmit.disabled = !allValid;
 }
 
@@ -289,15 +375,13 @@ async function doSubmit() {
       hasError = true;
       markFieldError(card, 'presenza');
       if (!firstErrorEl) firstErrorEl = presenzaGroup;
-      return; // senza presenza non ha senso validare il resto della card
+      return;
     }
     clearFieldError(card, 'presenza');
 
     const intolleranzeInput = card.querySelector('[data-field="intolleranze"]');
-    const pernottamentoGroup = card.querySelector('[data-field="pernottamento"]');
-    const trasportoGroup = card.querySelector('[data-field="trasporto"]');
+    const trasportoGroup    = card.querySelector('[data-field="trasporto"]');
 
-    // Trasporto è obbligatorio solo per chi conferma la presenza
     let trasportoValue = '';
     if (presenza === 'Sì') {
       trasportoValue = trasportoGroup ? (trasportoGroup.dataset.selected || '') : '';
@@ -311,19 +395,60 @@ async function doSubmit() {
     }
 
     risposte.push({
-      nome: card.dataset.nome,
-      cognome: card.dataset.cognome,
-      presenza: presenza,
+      nome:         card.dataset.nome,
+      cognome:      card.dataset.cognome,
+      presenza:     presenza,
       intolleranze: presenza === 'Sì' && intolleranzeInput ? intolleranzeInput.value.trim() : '',
-      pernottamento: presenza === 'Sì' && pernottamentoGroup ? (pernottamentoGroup.dataset.selected || '') : '',
-      trasporto: trasportoValue
+      trasporto:    trasportoValue
     });
   });
+
+  // Raccolta dati sezione hotel (a livello nucleo, non per-membro)
+  const hotelSection = document.getElementById('hotel-section');
+  const hotelVisibile = hotelSection && hotelSection.style.display !== 'none';
+  let hotelData = { stanzaConfermata: '', nottiExtra: '', notePernottamento: '' };
+
+  if (hotelVisibile) {
+    const stanzaGroup = hotelSection.querySelector('[data-field="stanza-confermata"]');
+    const stanzaVal   = stanzaGroup ? (stanzaGroup.dataset.selected || '') : '';
+
+    if (!stanzaVal) {
+      hasError = true;
+      if (stanzaGroup) {
+        stanzaGroup.classList.add('has-error');
+        if (!firstErrorEl) firstErrorEl = stanzaGroup;
+      }
+    }
+
+    // Notti extra — raccoglie i selezionati come stringa "Venerdì", "Domenica" o "Venerdì+Domenica"
+    const nottiSelezionate = Array.from(hotelSection.querySelectorAll('.notte-option.selected'))
+      .map(el => el.dataset.notte)
+      .join('+');
+
+    const noteTextarea = document.getElementById('note-pernottamento');
+
+    hotelData = {
+      stanzaConfermata:  stanzaVal,
+      nottiExtra:        nottiSelezionate || 'Nessuna',
+      notePernottamento: noteTextarea ? noteTextarea.value.trim() : ''
+    };
+  }
 
   if (hasError) {
     showMessage(submitMessage, 'Completa i campi obbligatori evidenziati per procedere.', 'error');
     if (firstErrorEl) firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
+  }
+
+  // Propaga i dati hotel su ogni membro presente (il backend li scrive solo se Presenza=Sì)
+  if (hotelVisibile) {
+    risposte.forEach(r => {
+      if (r.presenza === 'Sì') {
+        r.stanzaConfermata  = hotelData.stanzaConfermata;
+        r.nottiExtra        = hotelData.nottiExtra;
+        r.notePernottamento = hotelData.notePernottamento;
+      }
+    });
   }
 
   setLoading(btnSubmit, true, 'Invia risposta');

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dalma & Andrea - RSVP</title>
-<link rel="icon" type="image/png" href="/dalmaandrea-rsvp/images/logo.png">
+<link rel="icon" type="image/png" href="FAVICON_URL_QUI">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Lato:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -260,6 +260,132 @@
     background: var(--color-primary);
   }
 
+  /* ===== CARD PERNOTTAMENTO ANIMATA ===== */
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .hotel-card {
+    background: linear-gradient(135deg, #f0f4f0 0%, #e8f0e8 100%);
+    border: 1px solid #c8d8c8;
+    border-radius: 12px;
+    padding: 22px 20px;
+    margin-bottom: 28px;
+    animation: fadeSlideUp 0.6s ease both;
+  }
+
+  .hotel-card-icon {
+    font-size: 26px;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .hotel-card-title {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    font-weight: 600;
+    color: #4a6b4a;
+    margin: 0 0 8px;
+  }
+
+  .hotel-card-text {
+    font-size: 14px;
+    color: #5a7a5a;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* ===== SEZIONE PERNOTTAMENTO (post-presenze) ===== */
+  .hotel-section {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--color-border);
+    animation: fadeSlideUp 0.5s ease both;
+  }
+
+  .hotel-section-title {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0 0 6px;
+  }
+
+  .hotel-section-sub {
+    font-size: 13px;
+    color: var(--color-text-light);
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+
+  .notti-extra-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .notte-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .notte-option:hover { border-color: var(--color-primary); background: var(--color-bg); }
+  .notte-option.selected {
+    border-color: var(--color-primary);
+    background: rgba(140, 122, 107, 0.07);
+  }
+
+  .notte-checkbox {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 2px solid var(--color-border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-size: 11px;
+    color: #fff;
+  }
+  .notte-option.selected .notte-checkbox {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .notte-label {
+    font-size: 14px;
+    color: var(--color-text);
+  }
+  .notte-label-sub {
+    font-size: 12px;
+    color: var(--color-text-light);
+    margin-top: 1px;
+  }
+
+  .note-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: var(--font-body);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    resize: vertical;
+    min-height: 72px;
+    line-height: 1.5;
+  }
+  .note-textarea:focus { outline: none; border-color: var(--color-primary); }
+
   .required-legend {
     font-size: 12px;
     color: var(--color-text-light);
@@ -428,7 +554,7 @@
 <div class="rsvp-container">
 
   <div class="rsvp-header">
-    <h1><a href="/dalmaandrea-rsvp/" a style="text-decoration:none; color:inherit">Dalma & Andrea</a></h1>
+    <h1>Dalma & Andrea</h1>
     <p>Cerca il tuo nome per confermare la presenza<br>al nostro matrimonio del 10 Ottobre 2026</p>
   </div>
 
@@ -485,6 +611,54 @@
         <label style="margin-bottom: 0;">Il tuo nucleo familiare</label>
       </div>
       <div id="members-container"></div>
+
+      <!-- Sezione pernottamento — visibile solo se nucleo ha Necessita_Hotel=Sì
+           e almeno un membro ha confermato la presenza. Gestita da script.js -->
+      <div id="hotel-section" class="hotel-section" style="display:none">
+        <div class="hotel-section-title">Sistemazione per la notte</div>
+        <p class="hotel-section-sub">
+          Confermate di usufruire della sistemazione offerta per la notte del matrimonio
+          (10 → 11 ottobre)?
+        </p>
+
+        <div class="field-label">Conferma sistemazione notte 10–11 ottobre<span class="required-mark">*</span></div>
+        <div class="radio-group" data-field="stanza-confermata">
+          <div class="radio-option" data-value="Sì">Sì, confermiamo</div>
+          <div class="radio-option" data-value="No">No, grazie</div>
+        </div>
+
+        <div id="notti-extra-wrapper" style="display:none">
+          <div class="field-label" style="margin-top:16px">Avete bisogno di sistemazione per notti aggiuntive?</div>
+          <p class="hotel-section-sub" style="margin-bottom:12px">
+            Selezionate le notti che vi interessano, o nessuna se basta la notte del matrimonio.
+          </p>
+          <div class="notti-extra-group">
+            <div class="notte-option" data-notte="Venerdì">
+              <div class="notte-checkbox"></div>
+              <div>
+                <div class="notte-label">Notte di venerdì</div>
+                <div class="notte-label-sub">9 → 10 ottobre</div>
+              </div>
+            </div>
+            <div class="notte-option" data-notte="Domenica">
+              <div class="notte-checkbox"></div>
+              <div>
+                <div class="notte-label">Notte di domenica</div>
+                <div class="notte-label-sub">11 → 12 ottobre</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sub-field" style="margin-top:16px">
+          <label class="field-label" style="margin-bottom:6px; text-transform:none;">
+            Note o richieste particolari sulla sistemazione
+          </label>
+          <textarea id="note-pernottamento" class="note-textarea"
+                    placeholder="Es. camera con letto matrimoniale, piano terra, esigenze particolari..."></textarea>
+        </div>
+      </div>
+
       <p class="required-legend"><span class="required-mark">*</span> campo obbligatorio</p>
       <button class="btn" id="btn-submit" disabled>Invia risposta</button>
       <div class="message" id="submit-message"></div>
