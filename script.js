@@ -179,14 +179,22 @@ function renderMembersForm(membri) {
     const hotelCard = document.createElement('div');
     hotelCard.className = 'hotel-card';
     hotelCard.innerHTML = `
-      <span class="hotel-card-icon">🌿</span>
-      <div class="hotel-card-title">Abbiamo pensato anche alla vostra sistemazione</div>
-      <p class="hotel-card-text">
-        Per rendere tutto più semplice e piacevole, siamo felici di offrirvi
-        la sistemazione per la notte del matrimonio (10 → 11 ottobre).
-        Vi chiediamo solo di confermarla e di segnalarci eventuali necessità
-        per notti aggiuntive, così da comunicare il numero definitivo alla struttura.
-      </p>
+      <div class="hotel-card-frame"></div>
+      <div class="hotel-card-content">
+        <div class="hotel-card-divider">
+          <div class="rhombus"></div>
+          <div class="rhombus center"></div>
+          <div class="rhombus"></div>
+        </div>
+        <h2 class="hotel-card-title">Un pensiero per voi</h2>
+        <p class="hotel-card-text">
+          Per noi è il regalo più bello avervi al nostro fianco.<br>
+          Per questo motivo, avremmo il grande piacere di
+          <em>offrirvi il pernottamento</em> per la notte del matrimonio,
+          permettendovi di godervi la festa in totale relax.
+        </p>
+        <div class="hotel-card-badge">La vostra camera è già riservata</div>
+      </div>
     `;
     membersContainer.appendChild(hotelCard);
   }

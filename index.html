@@ -260,48 +260,130 @@
     background: var(--color-primary);
   }
 
-  /* ===== CARD PERNOTTAMENTO ANIMATA ===== */
-  @keyframes fadeSlideUp {
-    from { opacity: 0; transform: translateY(18px); }
+  /* ===== CARD PERNOTTAMENTO (stile luxury) ===== */
+  @keyframes luxuryReveal {
+    from { opacity: 0; transform: translateY(20px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 
   .hotel-card {
-    background: linear-gradient(135deg, #f0f4f0 0%, #e8f0e8 100%);
-    border: 1px solid #c8d8c8;
-    border-radius: 12px;
-    padding: 22px 20px;
+    background: var(--color-card-bg);
+    background-image: radial-gradient(circle at 50% 50%, #ffffff 0%, #FCFAF7 100%);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 36px 28px;
+    box-shadow: 0 10px 30px rgba(140, 122, 107, 0.08);
+    position: relative;
+    overflow: hidden;
     margin-bottom: 28px;
-    animation: fadeSlideUp 0.6s ease both;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: luxuryReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  .hotel-card-icon {
-    font-size: 26px;
-    margin-bottom: 10px;
-    display: block;
+  /* Cornice interna doppia */
+  .hotel-card-frame {
+    position: absolute;
+    top: 12px; left: 12px; right: 12px; bottom: 12px;
+    border: 1px solid rgba(140, 122, 107, 0.30);
+    border-radius: calc(var(--radius) - 4px);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .hotel-card-frame::before,
+  .hotel-card-frame::after {
+    content: '';
+    position: absolute;
+    background: var(--color-card-bg);
+    z-index: 1;
+  }
+  .hotel-card-frame::before {
+    top: 10px; bottom: 10px; left: -2px; right: -2px;
+    border-left: 1px solid rgba(140, 122, 107, 0.30);
+    border-right: 1px solid rgba(140, 122, 107, 0.30);
+  }
+  .hotel-card-frame::after {
+    left: 10px; right: 10px; top: -2px; bottom: -2px;
+    border-top: 1px solid rgba(140, 122, 107, 0.30);
+    border-bottom: 1px solid rgba(140, 122, 107, 0.30);
+  }
+
+  .hotel-card-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+  }
+
+  /* Separatore a rombi */
+  .hotel-card-divider {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 18px;
+  }
+  .hotel-card-divider .rhombus {
+    width: 5px; height: 5px;
+    background: var(--color-primary);
+    transform: rotate(45deg);
+    opacity: 0.6;
+  }
+  .hotel-card-divider .rhombus.center {
+    width: 7px; height: 7px;
+    opacity: 1;
   }
 
   .hotel-card-title {
-    font-family: var(--font-heading);
-    font-size: 16px;
-    font-weight: 600;
-    color: #4a6b4a;
-    margin: 0 0 8px;
+    font-family: 'Amsterdam One', var(--font-heading);
+    font-size: 34px;
+    font-weight: normal;
+    color: #909c8c;
+    margin: 0 0 14px;
+    line-height: 1.2;
   }
 
   .hotel-card-text {
+    font-family: var(--font-body);
     font-size: 14px;
-    color: #5a7a5a;
-    line-height: 1.6;
-    margin: 0;
+    line-height: 1.75;
+    color: var(--color-text);
+    margin: 0 0 20px;
   }
+  .hotel-card-text em {
+    font-family: var(--font-heading);
+    font-style: italic;
+    font-size: 15px;
+    color: var(--color-primary-dark);
+    font-weight: 600;
+  }
+
+  /* Badge firma in chiusura */
+  .hotel-card-badge {
+    display: inline-block;
+    font-family: var(--font-heading);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--color-primary);
+    padding: 0 20px;
+    position: relative;
+  }
+  .hotel-card-badge::before,
+  .hotel-card-badge::after {
+    content: '';
+    position: absolute;
+    top: 52%;
+    width: 18px; height: 1px;
+    background: rgba(140, 122, 107, 0.35);
+  }
+  .hotel-card-badge::before { left: -10px; }
+  .hotel-card-badge::after  { right: -10px; }
 
   /* ===== SEZIONE PERNOTTAMENTO (post-presenze) ===== */
   .hotel-section {
     margin-top: 28px;
     padding-top: 24px;
     border-top: 1px solid var(--color-border);
-    animation: fadeSlideUp 0.5s ease both;
+    animation: luxuryReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .hotel-section-title {
@@ -618,7 +700,7 @@
         <div class="hotel-section-title">Sistemazione per la notte</div>
         <p class="hotel-section-sub">
           Confermate di usufruire della sistemazione offerta per la notte del matrimonio
-          (10 → 11 ottobre)?
+          (10–11 ottobre)?
         </p>
 
         <div class="field-label">Conferma sistemazione notte 10–11 ottobre<span class="required-mark">*</span></div>
@@ -637,14 +719,14 @@
               <div class="notte-checkbox"></div>
               <div>
                 <div class="notte-label">Notte di venerdì</div>
-                <div class="notte-label-sub">9 → 10 ottobre</div>
+                <div class="notte-label-sub">9–10 ottobre</div>
               </div>
             </div>
             <div class="notte-option" data-notte="Domenica">
               <div class="notte-checkbox"></div>
               <div>
                 <div class="notte-label">Notte di domenica</div>
-                <div class="notte-label-sub">11 → 12 ottobre</div>
+                <div class="notte-label-sub">11–12 ottobre</div>
               </div>
             </div>
           </div>
