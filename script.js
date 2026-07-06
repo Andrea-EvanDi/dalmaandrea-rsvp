@@ -282,6 +282,17 @@ function setupTransportSection() {
       option.classList.add('selected-yes');
       trasportoGroup.dataset.selected = option.dataset.value;
       trasportoGroup.classList.remove('has-error');
+
+      // Mostra campo note solo se "Ho bisogno di informazioni"
+      const noteWrapper = document.getElementById('note-trasporto-wrapper');
+      if (noteWrapper) {
+        noteWrapper.style.display = option.dataset.value === 'Ho bisogno di informazioni' ? 'block' : 'none';
+        if (option.dataset.value !== 'Ho bisogno di informazioni') {
+          const noteField = document.getElementById('note-trasporto');
+          if (noteField) noteField.value = '';
+        }
+      }
+
       updateSubmitButtonState();
     });
   }
@@ -309,6 +320,10 @@ function updateTransportSectionVisibility() {
       trasportoGroup.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected-yes', 'selected-no'));
       delete trasportoGroup.dataset.selected;
     }
+    const noteWrapper = document.getElementById('note-trasporto-wrapper');
+    if (noteWrapper) noteWrapper.style.display = 'none';
+    const noteField = document.getElementById('note-trasporto');
+    if (noteField) noteField.value = '';
   }
 }
 
@@ -448,6 +463,7 @@ async function doSubmit() {
   const transportSection = document.getElementById('transport-section');
   const transportVisibile = transportSection && transportSection.style.display !== 'none';
   let trasportoNucleo = '';
+  let noteTrasportoNucleo = '';
 
   if (transportVisibile) {
     const trasportoGroup = transportSection.querySelector('[data-field="trasporto-nucleo"]');
@@ -459,11 +475,18 @@ async function doSubmit() {
         if (!firstErrorEl) firstErrorEl = trasportoGroup;
       }
     }
+    if (trasportoNucleo === 'Ho bisogno di informazioni') {
+      const noteField = document.getElementById('note-trasporto');
+      noteTrasportoNucleo = noteField ? noteField.value.trim() : '';
+    }
   }
 
-  // Propaga trasporto su ogni membro presente
+  // Propaga trasporto e note su ogni membro presente
   risposte.forEach(r => {
-    if (r.presenza === 'Sì') r.trasporto = trasportoNucleo;
+    if (r.presenza === 'Sì') {
+      r.trasporto      = trasportoNucleo;
+      r.noteTrasporto  = noteTrasportoNucleo;
+    }
   });
 
   // Raccolta dati sezione hotel (a livello nucleo, non per-membro)
