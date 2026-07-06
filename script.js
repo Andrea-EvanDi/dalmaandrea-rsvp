@@ -144,6 +144,12 @@ btnConfirmYes.addEventListener('click', async () => {
     }
 
     if (data.giaRisposto) {
+      // Notifica silenziosa al backend — non blocca il flusso, fire-and-forget
+      fetch(`${API_URL}?action=notify-retry` +
+            `&nucleoId=${encodeURIComponent(currentMatch.nucleoId)}` +
+            `&nome=${encodeURIComponent(currentMatch.nome)}` +
+            `&cognome=${encodeURIComponent(currentMatch.cognome)}`
+      ).catch(() => {}); // ignora errori di rete, non è critico
       showScreen('already');
       return;
     }
@@ -190,10 +196,10 @@ function renderMembersForm(membri) {
         <p class="hotel-card-text">
           Per noi è il regalo più bello avervi al nostro fianco.<br>
           Per questo motivo, avremmo il grande piacere di
-          <em>offrirvi il pernottamento</em> per la notte del matrimonio,
+          <em>ospitarvi la notte del matrimonio</em>,
           permettendovi di godervi la festa in totale relax.
         </p>
-        <div class="hotel-card-badge">La vostra camera è già disponibile</div>
+        <div class="hotel-card-badge">La notte del matrimonio è offerta da noi</div>
       </div>
     `;
     membersContainer.appendChild(hotelCard);
@@ -222,10 +228,11 @@ function renderMembersForm(membri) {
       </div>
 
       <div class="sub-field presenza-dependent conditional-hidden">
-        <label class="field-label">Necessità di trasporto / informazioni su come arrivare<span class="required-mark">*</span></label>
-        <div class="radio-group" data-field="trasporto">
-          <div class="radio-option" data-value="Sì">Sì</div>
-          <div class="radio-option" data-value="No">No</div>
+        <label class="field-label">Come raggiungerete il luogo del matrimonio?<span class="required-mark">*</span></label>
+        <div class="radio-group radio-group--vertical" data-field="trasporto">
+          <div class="radio-option" data-value="Arrivo autonomo">Arrivo autonomo</div>
+          <div class="radio-option" data-value="Interesse per uno shuttle">Interesse per uno shuttle</div>
+          <div class="radio-option" data-value="Ho bisogno di informazioni">Ho bisogno di informazioni su come arrivare</div>
         </div>
       </div>
     `;
