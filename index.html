@@ -704,8 +704,18 @@
       </div>
       <div id="members-container"></div>
 
-      <!-- Sezione pernottamento — visibile solo se nucleo ha Necessita_Hotel=Sì
-           e almeno un membro ha confermato la presenza. Gestita da script.js -->
+      <!-- Sezione trasporto — visibile se ≥1 presente, raccolta unica per nucleo -->
+      <div id="transport-section" class="hotel-section" style="display:none">
+        <div class="hotel-section-title">Come raggiungerete il luogo del matrimonio?<span class="required-mark">*</span></div>
+        <p class="hotel-section-sub">Una risposta per tutto il gruppo.</p>
+        <div class="radio-group radio-group--vertical" data-field="trasporto-nucleo">
+          <div class="radio-option" data-value="Arrivo autonomo">Arrivo autonomo</div>
+          <div class="radio-option" data-value="Interesse per uno shuttle">Interesse per uno shuttle</div>
+          <div class="radio-option" data-value="Ho bisogno di informazioni">Ho bisogno di informazioni su come arrivare</div>
+        </div>
+      </div>
+
+      <!-- Sezione pernottamento — visibile se ≥1 presente E nucleo ha Necessita_Hotel=Sì -->
       <div id="hotel-section" class="hotel-section" style="display:none">
         <div class="hotel-section-title">Sistemazione per la notte</div>
         <p class="hotel-section-sub">

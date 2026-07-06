@@ -196,10 +196,10 @@ function renderMembersForm(membri) {
         <p class="hotel-card-text">
           Per noi è il regalo più bello avervi al nostro fianco.<br>
           Per questo motivo, avremmo il grande piacere di
-          <em>ospitarvi la notte del matrimonio</em>,
+          <em>offrirvi il pernottamento</em> per la notte del matrimonio,
           permettendovi di godervi la festa in totale relax.
         </p>
-        <div class="hotel-card-badge">La notte del matrimonio è offerta da noi</div>
+        <div class="hotel-card-badge">La vostra camera è già disponibile</div>
       </div>
     `;
     membersContainer.appendChild(hotelCard);
@@ -226,21 +226,13 @@ function renderMembersForm(membri) {
         <label>Intolleranze / allergie alimentari</label>
         <input type="text" class="text-input" data-field="intolleranze" placeholder="Nessuna, se non specificato">
       </div>
-
-      <div class="sub-field presenza-dependent conditional-hidden">
-        <label class="field-label">Come raggiungerete il luogo del matrimonio?<span class="required-mark">*</span></label>
-        <div class="radio-group radio-group--vertical" data-field="trasporto">
-          <div class="radio-option" data-value="Arrivo autonomo">Arrivo autonomo</div>
-          <div class="radio-option" data-value="Interesse per uno shuttle">Interesse per uno shuttle</div>
-          <div class="radio-option" data-value="Ho bisogno di informazioni">Ho bisogno di informazioni su come arrivare</div>
-        </div>
-      </div>
     `;
 
     membersContainer.appendChild(card);
   });
 
-  // Setup sezione hotel (nascosta inizialmente)
+  // Setup sezione trasporto e hotel
+  setupTransportSection();
   setupHotelSection(nucleoHasHotel);
   updateSubmitButtonState();
 
@@ -263,13 +255,61 @@ function renderMembersForm(membri) {
         card.querySelectorAll('.presenza-dependent').forEach(f => {
           f.classList.toggle('conditional-hidden', value !== 'Sì');
         });
-        // Aggiorna visibilità sezione hotel dopo ogni cambio presenza
+        updateTransportSectionVisibility();
         updateHotelSectionVisibility(nucleoHasHotel);
       }
 
       updateSubmitButtonState();
     });
   });
+}
+
+// ===== SEZIONE TRASPORTO =====
+function setupTransportSection() {
+  const transportSection = document.getElementById('transport-section');
+  if (!transportSection) return;
+
+  transportSection.style.display = 'none';
+
+  const trasportoGroup = transportSection.querySelector('[data-field="trasporto-nucleo"]');
+  if (trasportoGroup) {
+    trasportoGroup.addEventListener('click', (e) => {
+      const option = e.target.closest('.radio-option');
+      if (!option) return;
+      trasportoGroup.querySelectorAll('.radio-option').forEach(o => {
+        o.classList.remove('selected-yes', 'selected-no');
+      });
+      option.classList.add('selected-yes');
+      trasportoGroup.dataset.selected = option.dataset.value;
+      trasportoGroup.classList.remove('has-error');
+      updateSubmitButtonState();
+    });
+  }
+}
+
+function updateTransportSectionVisibility() {
+  const transportSection = document.getElementById('transport-section');
+  if (!transportSection) return;
+
+  const cards = membersContainer.querySelectorAll('.member-card');
+  const almenoUnPresente = Array.from(cards).some(card => {
+    const g = card.querySelector('[data-field="presenza"]');
+    return g && g.dataset.selected === 'Sì';
+  });
+
+  if (almenoUnPresente && transportSection.style.display === 'none') {
+    transportSection.style.display = 'block';
+    transportSection.style.animation = 'none';
+    transportSection.offsetHeight;
+    transportSection.style.animation = '';
+  } else if (!almenoUnPresente) {
+    transportSection.style.display = 'none';
+    const trasportoGroup = transportSection.querySelector('[data-field="trasporto-nucleo"]');
+    if (trasportoGroup) {
+      trasportoGroup.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected-yes', 'selected-no'));
+      delete trasportoGroup.dataset.selected;
+    }
+  }
 }
 
 // ===== SEZIONE HOTEL =====
@@ -345,29 +385,28 @@ function isCardValid(card) {
   const presenzaGroup = card.querySelector('[data-field="presenza"]');
   const presenza = presenzaGroup.dataset.selected || '';
   if (!presenza) return false;
-
-  if (presenza === 'Sì') {
-    const trasportoGroup = card.querySelector('[data-field="trasporto"]');
-    const trasporto = trasportoGroup ? (trasportoGroup.dataset.selected || '') : '';
-    if (!trasporto) return false;
-  }
-
   return true;
+}
+
+function isTransportSectionValid() {
+  const transportSection = document.getElementById('transport-section');
+  if (!transportSection || transportSection.style.display === 'none') return true;
+  const trasportoGroup = transportSection.querySelector('[data-field="trasporto-nucleo"]');
+  return !!(trasportoGroup && trasportoGroup.dataset.selected);
 }
 
 function isHotelSectionValid() {
   const hotelSection = document.getElementById('hotel-section');
-  if (!hotelSection || hotelSection.style.display === 'none') return true; // non visibile = non richiesta
-
+  if (!hotelSection || hotelSection.style.display === 'none') return true;
   const stanzaGroup = hotelSection.querySelector('[data-field="stanza-confermata"]');
-  if (!stanzaGroup || !stanzaGroup.dataset.selected) return false; // obbligatorio se visibile
-
-  return true;
+  return !!(stanzaGroup && stanzaGroup.dataset.selected);
 }
 
 function updateSubmitButtonState() {
   const cards = membersContainer.querySelectorAll('.member-card');
-  const allValid = Array.from(cards).every(isCardValid) && isHotelSectionValid();
+  const allValid = Array.from(cards).every(isCardValid)
+    && isTransportSectionValid()
+    && isHotelSectionValid();
   btnSubmit.disabled = !allValid;
 }
 
@@ -395,27 +434,36 @@ async function doSubmit() {
     clearFieldError(card, 'presenza');
 
     const intolleranzeInput = card.querySelector('[data-field="intolleranze"]');
-    const trasportoGroup    = card.querySelector('[data-field="trasporto"]');
-
-    let trasportoValue = '';
-    if (presenza === 'Sì') {
-      trasportoValue = trasportoGroup ? (trasportoGroup.dataset.selected || '') : '';
-      if (!trasportoValue) {
-        hasError = true;
-        markFieldError(card, 'trasporto');
-        if (!firstErrorEl) firstErrorEl = trasportoGroup;
-      } else {
-        clearFieldError(card, 'trasporto');
-      }
-    }
 
     risposte.push({
       nome:         card.dataset.nome,
       cognome:      card.dataset.cognome,
       presenza:     presenza,
       intolleranze: presenza === 'Sì' && intolleranzeInput ? intolleranzeInput.value.trim() : '',
-      trasporto:    trasportoValue
+      trasporto:    '' // valorizzato sotto dalla sezione nucleo
     });
+  });
+
+  // Raccolta trasporto a livello nucleo — propagato su tutti i presenti
+  const transportSection = document.getElementById('transport-section');
+  const transportVisibile = transportSection && transportSection.style.display !== 'none';
+  let trasportoNucleo = '';
+
+  if (transportVisibile) {
+    const trasportoGroup = transportSection.querySelector('[data-field="trasporto-nucleo"]');
+    trasportoNucleo = trasportoGroup ? (trasportoGroup.dataset.selected || '') : '';
+    if (!trasportoNucleo) {
+      hasError = true;
+      if (trasportoGroup) {
+        trasportoGroup.classList.add('has-error');
+        if (!firstErrorEl) firstErrorEl = trasportoGroup;
+      }
+    }
+  }
+
+  // Propaga trasporto su ogni membro presente
+  risposte.forEach(r => {
+    if (r.presenza === 'Sì') r.trasporto = trasportoNucleo;
   });
 
   // Raccolta dati sezione hotel (a livello nucleo, non per-membro)
