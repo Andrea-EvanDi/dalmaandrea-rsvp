@@ -193,7 +193,7 @@ function renderMembersForm(membri) {
           <em>offrirvi il pernottamento</em> per la notte del matrimonio,
           permettendovi di godervi la festa in totale relax.
         </p>
-        <div class="hotel-card-badge">La vostra camera è già riservata</div>
+        <div class="hotel-card-badge">La vostra camera è già disponibile</div>
       </div>
     `;
     membersContainer.appendChild(hotelCard);
