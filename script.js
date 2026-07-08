@@ -194,8 +194,8 @@ function renderMembersForm(membri) {
         </div>
         <h2 class="hotel-card-title">Un pensiero per voi</h2>
         <p class="hotel-card-text">
-          Per noi è il regalo più bello avervi al nostro fianco.<br>
-          Per questo motivo, avremmo il grande piacere di
+          Per noi il regalo più bello è avervi al nostro fianco.<br>
+          Per questo motivo avremmo il grande piacere di
           <em>offrirvi il pernottamento</em> per la notte del matrimonio,
           permettendovi di godervi la festa in totale relax.
         </p>
