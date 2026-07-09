@@ -296,6 +296,11 @@ function setupTransportSection() {
       updateSubmitButtonState();
     });
   }
+  // Aggiorna validazione live quando l'utente scrive nelle note trasporto
+  const noteField = document.getElementById('note-trasporto');
+  if (noteField) {
+    noteField.addEventListener('input', updateSubmitButtonState);
+  }
 }
 
 function updateTransportSectionVisibility() {
@@ -407,7 +412,12 @@ function isTransportSectionValid() {
   const transportSection = document.getElementById('transport-section');
   if (!transportSection || transportSection.style.display === 'none') return true;
   const trasportoGroup = transportSection.querySelector('[data-field="trasporto-nucleo"]');
-  return !!(trasportoGroup && trasportoGroup.dataset.selected);
+  if (!trasportoGroup || !trasportoGroup.dataset.selected) return false;
+  if (trasportoGroup.dataset.selected === 'Ho bisogno di informazioni') {
+    const noteField = document.getElementById('note-trasporto');
+    if (!noteField || !noteField.value.trim()) return false;
+  }
+  return true;
 }
 
 function isHotelSectionValid() {
@@ -477,7 +487,13 @@ async function doSubmit() {
     }
     if (trasportoNucleo === 'Ho bisogno di informazioni') {
       const noteField = document.getElementById('note-trasporto');
-      noteTrasportoNucleo = noteField ? noteField.value.trim() : '';
+      if (!noteField || !noteField.value.trim()) {
+        hasError = true;
+        if (noteField) {
+          noteField.style.borderColor = 'var(--color-error)';
+          if (!firstErrorEl) firstErrorEl = noteField;
+        }
+      }
     }
   }
 
