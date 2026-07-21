@@ -210,6 +210,7 @@ function renderMembersForm(membri) {
     card.className = 'member-card';
     card.dataset.nome = m.nome;
     card.dataset.cognome = m.cognome;
+    card.dataset.ospiteAggiuntivo = m.ospiteAggiuntivo || '';
 
     const badge = m.etaTipo === 'Bambino' ? '<span class="member-badge">Bambino</span>' : '';
 
@@ -226,6 +227,34 @@ function renderMembersForm(membri) {
         <label>Intolleranze / allergie alimentari</label>
         <input type="text" class="text-input" data-field="intolleranze" placeholder="Nessuna, se non specificato">
       </div>
+      
+      ${m.ospiteAggiuntivo === 'Previsto' ? `
+        <div class="sub-field presenza-dependent conditional-hidden">
+          <label class="field-label" style="text-transform:none;">
+            Vuoi portare un accompagnatore?
+          </label>
+          <div class="radio-group" data-field="plus1">
+            <div class="radio-option" data-value="Sì">Sì</div>
+            <div class="radio-option" data-value="No">No</div>
+          </div>
+        </div>
+
+      <div class="sub-field presenza-dependent plus1-dependent conditional-hidden">
+        <label class="field-label" style="margin-bottom:6px; text-transform:none;">
+          Nome e cognome dell'accompagnatore<span class="required-mark">*</span>
+        </label>
+        <input type="text" class="text-input" data-field="nome-ospite"
+         placeholder="Es. Maria Rossi">
+      </div>
+
+      <div class="sub-field presenza-dependent plus1-dependent conditional-hidden">
+        <label style="text-transform:none;">
+          Intolleranze / allergie alimentari dell'accompagnatore
+        </label>
+        <input type="text" class="text-input" data-field="intolleranze-ospite"
+         placeholder="Nessuna, se non specificato">
+      </div>
+      ` : ''}
     `;
 
     membersContainer.appendChild(card);
@@ -257,6 +286,13 @@ function renderMembersForm(membri) {
         });
         updateTransportSectionVisibility();
         updateHotelSectionVisibility(nucleoHasHotel);
+      }
+
+      if (group.dataset.field === 'plus1') {
+        const card = group.closest('.member-card');
+        card.querySelectorAll('.plus1-dependent').forEach(f => {
+          f.classList.toggle('conditional-hidden', value !== 'Sì');
+        });
       }
 
       updateSubmitButtonState();
@@ -405,6 +441,16 @@ function isCardValid(card) {
   const presenzaGroup = card.querySelector('[data-field="presenza"]');
   const presenza = presenzaGroup.dataset.selected || '';
   if (!presenza) return false;
+  if (presenza === 'Sì') {
+    const plus1Group = card.querySelector('[data-field="plus1"]');
+    if (plus1Group) {
+      const plus1 = plus1Group.dataset.selected || '';
+      if (plus1 === 'Sì') {
+        const nomeOspite = card.querySelector('[data-field="nome-ospite"]');
+        if (!nomeOspite || !nomeOspite.value.trim()) return false;
+      }
+    }
+  }
   return true;
 }
 
@@ -460,12 +506,32 @@ async function doSubmit() {
 
     const intolleranzeInput = card.querySelector('[data-field="intolleranze"]');
 
+    const plus1Group = card.querySelector('[data-field="plus1"]');
+    const nomeOspiteInput = card.querySelector('[data-field="nome-ospite"]');
+    const intOspiteInput = card.querySelector('[data-field="intolleranze-ospite"]');
+
+    let ospiteAggiuntivo  = card.dataset.ospiteAggiuntivo || '';  // valore originale dal DB
+    let intolleranzeOspite = '';
+
+    if (presenza === 'Sì' && plus1Group) {
+      const plus1 = plus1Group.dataset.selected || '';
+      if (plus1 === 'Sì' && nomeOspiteInput && nomeOspiteInput.value.trim()) {
+        ospiteAggiuntivo   = nomeOspiteInput.value.trim();
+        intolleranzeOspite = intOspiteInput ? intOspiteInput.value.trim() : '';
+      } else if (plus1 === 'No') {
+      ospiteAggiuntivo = 'No';
+      }
+      // Se non risponde (campo non compilato) → backend salva 'No' per default
+    }
+    
     risposte.push({
       nome:         card.dataset.nome,
       cognome:      card.dataset.cognome,
       presenza:     presenza,
       intolleranze: presenza === 'Sì' && intolleranzeInput ? intolleranzeInput.value.trim() : '',
-      trasporto:    '' // valorizzato sotto dalla sezione nucleo
+      trasporto:    '', // valorizzato sotto dalla sezione nucleo
+      ospiteAggiuntivo:   ospiteAggiuntivo,
+      intolleranzeOspite: intolleranzeOspite
     });
   });
 
