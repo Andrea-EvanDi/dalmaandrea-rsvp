@@ -239,21 +239,21 @@ function renderMembersForm(membri) {
           </div>
         </div>
 
-      <div class="sub-field presenza-dependent plus1-dependent conditional-hidden">
-        <label class="field-label" style="margin-bottom:6px; text-transform:none;">
-          Nome e cognome dell'accompagnatore<span class="required-mark">*</span>
-        </label>
-        <input type="text" class="text-input" data-field="nome-ospite"
-         placeholder="Es. Maria Rossi">
-      </div>
+        <div class="sub-field plus1-dependent conditional-hidden">
+          <label class="field-label" style="margin-bottom:6px; text-transform:none;">
+            Nome e cognome dell'accompagnatore<span class="required-mark">*</span>
+          </label>
+          <input type="text" class="text-input" data-field="nome-ospite"
+           placeholder="Es. Maria Rossi">
+        </div>
 
-      <div class="sub-field presenza-dependent plus1-dependent conditional-hidden">
-        <label style="text-transform:none;">
-          Intolleranze / allergie alimentari dell'accompagnatore
-        </label>
-        <input type="text" class="text-input" data-field="intolleranze-ospite"
-         placeholder="Nessuna, se non specificato">
-      </div>
+        <div class="sub-field plus1-dependent conditional-hidden">
+          <label style="text-transform:none;">
+            Intolleranze / allergie alimentari dell'accompagnatore
+          </label>
+          <input type="text" class="text-input" data-field="intolleranze-ospite"
+           placeholder="Nessuna, se non specificato">
+        </div>
       ` : ''}
     `;
 
@@ -284,6 +284,20 @@ function renderMembersForm(membri) {
         card.querySelectorAll('.presenza-dependent').forEach(f => {
           f.classList.toggle('conditional-hidden', value !== 'Sì');
         });
+              // SE L'UTENTE SELEZIONA "NO" ALLA PRESENZA:
+        // Reset dei campi e dello stato dell'accompagnatore
+        if (value !== 'Sì') {
+          const plus1Group = card.querySelector('[data-field="plus1"]');
+          if (plus1Group) {
+            delete plus1Group.dataset.selected;
+            plus1Group.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected-yes', 'selected-no'));
+          }
+          card.querySelectorAll('.plus1-dependent').forEach(f => {
+            f.classList.add('conditional-hidden');
+            const input = f.querySelector('input');
+            if (input) input.value = '';
+          });
+        }
         updateTransportSectionVisibility();
         updateHotelSectionVisibility(nucleoHasHotel);
       }
@@ -544,6 +558,8 @@ async function doSubmit() {
   if (transportVisibile) {
     const trasportoGroup = transportSection.querySelector('[data-field="trasporto-nucleo"]');
     trasportoNucleo = trasportoGroup ? (trasportoGroup.dataset.selected || '') : '';
+    const noteField = document.getElementById('note-trasporto');
+    noteTrasportoNucleo = noteField ? noteField.value.trim() : '';
     if (!trasportoNucleo) {
       hasError = true;
       if (trasportoGroup) {
