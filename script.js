@@ -406,7 +406,31 @@ function setupHotelSection(nucleoHasHotel) {
 
       const nottiWrapper = document.getElementById('notti-extra-wrapper');
       if (nottiWrapper) nottiWrapper.style.display = value === 'Sì' ? 'block' : 'none';
+      // Reset notte venerdì quando si nasconde il wrapper
+      if (value !== 'Sì') {
+        const notteGroup = hotelSection.querySelector('[data-field="notte-venerdi"]');
+        if (notteGroup) {
+          notteGroup.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected-yes', 'selected-no'));
+          delete notteGroup.dataset.selected;
+        }
+      }
+      updateSubmitButtonState();
+    });
+  }
 
+  // Listener dedicato per il radio notte-venerdì
+  const notteVenerdiGroup = hotelSection.querySelector('[data-field="notte-venerdi"]');
+  if (notteVenerdiGroup) {
+    notteVenerdiGroup.addEventListener('click', (e) => {
+      const option = e.target.closest('.radio-option');
+      if (!option) return;
+      notteVenerdiGroup.querySelectorAll('.radio-option').forEach(o => {
+        o.classList.remove('selected-yes', 'selected-no');
+      });
+      const value = option.dataset.value;
+      option.classList.add(value === 'Sì' ? 'selected-yes' : 'selected-no');
+      notteVenerdiGroup.dataset.selected = value;
+      notteVenerdiGroup.classList.remove('has-error');
       updateSubmitButtonState();
     });
   }
@@ -483,8 +507,18 @@ function isTransportSectionValid() {
 function isHotelSectionValid() {
   const hotelSection = document.getElementById('hotel-section');
   if (!hotelSection || hotelSection.style.display === 'none') return true;
+
   const stanzaGroup = hotelSection.querySelector('[data-field="stanza-confermata"]');
-  return !!(stanzaGroup && stanzaGroup.dataset.selected);
+  if (!stanzaGroup || !stanzaGroup.dataset.selected) return false;
+
+  // Se la stanza è confermata, il campo notte venerdì diventa obbligatorio
+  const nottiWrapper = document.getElementById('notti-extra-wrapper');
+  if (nottiWrapper && nottiWrapper.style.display !== 'none') {
+    const notteGroup = hotelSection.querySelector('[data-field="notte-venerdi"]');
+    if (!notteGroup || !notteGroup.dataset.selected) return false;
+  }
+
+  return true;
 }
 
 function updateSubmitButtonState() {
