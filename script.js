@@ -638,16 +638,15 @@ async function doSubmit() {
       }
     }
 
-    // Notti extra — raccoglie i selezionati come stringa "Venerdì", "Domenica" o "Venerdì+Domenica"
-    const nottiSelezionate = Array.from(hotelSection.querySelectorAll('.notte-option.selected'))
-      .map(el => el.dataset.notte)
-      .join('+');
+    // Legge la scelta "Sì" / "No" per la notte extra del venerdì (9-10 Ott)
+    const notteGroup = hotelSection.querySelector('[data-field="notte-venerdi"]');
+    const notteVal = notteGroup ? (notteGroup.dataset.selected || 'No') : 'No';
 
     const noteTextarea = document.getElementById('note-pernottamento');
 
     hotelData = {
       stanzaConfermata:  stanzaVal,
-      nottiExtra:        nottiSelezionate || 'Nessuna',
+      nottiExtra:        stanzaVal === 'Sì' ? notteVal : 'No',
       notePernottamento: noteTextarea ? noteTextarea.value.trim() : ''
     };
   }
